@@ -7,6 +7,8 @@ side window. It tracks the active buffer, lets you pin favorites to
 the top, and provides quick toggles for filtering and sorting -- all
 in about 400 lines of Elisp with no external dependencies.
 
+![sidebuf screenshot](screenshots/sidebuf.png)
+
 ## Features
 
 - **Pinned sidebar** -- always-visible buffer list on the left or right
