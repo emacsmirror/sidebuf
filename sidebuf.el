@@ -50,6 +50,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'face-remap)
 (require 'hl-line)
 
 ;;;; Customization group
@@ -109,7 +110,23 @@ and sorts alphabetically within each group.
      :background "white" :foreground "black" :extend t)
     (t
      :background "black" :foreground "white" :extend t))
-  "Face for `hl-line' in the Sidebuf panel (inverse video)."
+  "Face for `hl-line' in the Sidebuf panel when it has focus."
+  :group 'sidebuf)
+
+(defface sidebuf-hl-line-inactive
+  '((((background dark))
+     :box (:line-width -1 :color "white") :extend nil)
+    (t
+     :box (:line-width -1 :color "black") :extend nil))
+  "Face for `hl-line' in the Sidebuf panel when it lacks focus.
+Highlights which buffer is currently active in the other window
+while making it obvious that the panel itself is not focused.
+The box color is pinned explicitly so the outline does not
+inherit the buffer name's foreground (which would otherwise
+tint the box around faced buffer names like *special* ones).
+`:extend nil' is set explicitly to override the base `hl-line'
+face: with `:extend t', Emacs does not draw the right edge of
+the box across the virtual end-of-line extension."
   :group 'sidebuf)
 
 (defface sidebuf-fringe-indicator
@@ -155,6 +172,14 @@ every command.")
 
 (defvar-local sidebuf--fringe-ov nil
   "Overlay for the fringe indicator in the panel.")
+
+(defvar-local sidebuf--hl-line-cookie nil
+  "Face-remap cookie for `hl-line' in the panel.")
+
+(defvar-local sidebuf--match-p nil
+  "Non-nil if the last render placed point on a visible line.
+When nil while the panel is unfocused, `sidebuf-refresh' hides
+the `hl-line' overlay so no stale line is highlighted.")
 
 ;;;; Fringe bitmap
 
@@ -253,6 +278,9 @@ Pinned buffers always come first, in pin order."
          (bufs (sidebuf--sort
                 (cl-remove-if-not #'sidebuf--visible-p
                                   (buffer-list))))
+         (text-width (if panel-win
+                         (window-body-width panel-win)
+                       sidebuf-width))
          target-pos)
     ;; Prune stale pins
     (setq sidebuf--pinned
@@ -288,20 +316,34 @@ Pinned buffers always come first, in pin order."
                            'sidebuf-hidden)
                           ((string-prefix-p "*" name)
                            'sidebuf-special)
-                          (t nil))))
-              (insert (propertize (concat prefix name)
-                                  'sidebuf-buffer buf
-                                  'face face)
+                          (t nil)))
+                   (text (concat prefix name))
+                   (pad (max 0 (- text-width
+                                  (string-width text)))))
+              (insert (propertize
+                       (concat text (make-string pad ?\s))
+                       'sidebuf-buffer buf
+                       'face face)
                       "\n")
               (when (if panel-focused
                         (and point-buf-name
                              (string= name point-buf-name))
                       (eq buf active))
                 (setq target-pos bol))))
+          (setq sidebuf--match-p (and target-pos t))
           (when (and target-pos panel-win)
             (set-window-point panel-win target-pos)))))))
 
 ;;;; Fringe indicator
+
+(defun sidebuf--hl-line-range ()
+  "Return the `hl-line' range for the panel.
+Excludes the trailing newline so the `:box' outline from
+`sidebuf-hl-line-inactive' closes on the right edge.  The
+display engine will not render a box vertical at a newline
+position, so hl-line's default range (which includes the
+newline) leaves the right side of the box open."
+  (cons (line-beginning-position) (line-end-position)))
 
 (defun sidebuf--clamp-point ()
   "Keep point on a valid buffer line."
@@ -319,6 +361,25 @@ Pinned buffers always come first, in pin order."
     (move-overlay sidebuf--fringe-ov
                   (line-beginning-position)
                   (1+ (line-beginning-position)))))
+
+(defun sidebuf--apply-hl-line-face (&rest _)
+  "Swap the `hl-line' face remap in the panel based on focus.
+Uses `sidebuf-hl-line' when the panel has focus and
+`sidebuf-hl-line-inactive' otherwise."
+  (let ((buf (get-buffer sidebuf--buffer-name)))
+    (when buf
+      (with-current-buffer buf
+        (when sidebuf--hl-line-cookie
+          (face-remap-remove-relative sidebuf--hl-line-cookie)
+          (setq sidebuf--hl-line-cookie nil))
+        (let* ((win (get-buffer-window buf))
+               (focused (and win (eq (frame-selected-window) win))))
+          (setq sidebuf--hl-line-cookie
+                (face-remap-add-relative
+                 'hl-line
+                 (if focused
+                     'sidebuf-hl-line
+                   'sidebuf-hl-line-inactive))))))))
 
 (defun sidebuf--show-fringe (&rest _)
   "Show or hide fringe indicator based on panel focus."
@@ -359,8 +420,11 @@ Pinned buffers always come first, in pin order."
           (win (get-buffer-window sidebuf--buffer-name)))
       (when win
         (sidebuf--render)
-        (with-selected-window win
-          (hl-line-highlight))
+        (let ((focused (eq (frame-selected-window) win)))
+          (with-selected-window win
+            (if (or focused sidebuf--match-p)
+                (hl-line-highlight)
+              (hl-line-unhighlight))))
         (sidebuf--show-fringe)))))
 
 ;;;; Interactive commands
@@ -516,9 +580,10 @@ If the buffer is already visible, switch to its window."
   :group 'sidebuf
   (setq-local cursor-type nil
               truncate-lines t
-              hl-line-sticky-flag t)
+              hl-line-sticky-flag t
+              hl-line-range-function #'sidebuf--hl-line-range)
   (hl-line-mode 1)
-  (face-remap-add-relative 'hl-line 'sidebuf-hl-line)
+  (sidebuf--apply-hl-line-face)
   ;; Fringe indicator overlay
   (setq sidebuf--fringe-ov
         (make-overlay 1 1 (current-buffer)))
@@ -547,6 +612,8 @@ If the buffer is already visible, switch to its window."
     (set-window-dedicated-p win t)
     (add-hook 'window-selection-change-functions #'sidebuf-refresh)
     (add-hook 'window-selection-change-functions #'sidebuf--show-fringe)
+    (add-hook 'window-selection-change-functions
+              #'sidebuf--apply-hl-line-face)
     (add-hook 'buffer-list-update-hook #'sidebuf-refresh)
     (add-hook 'after-save-hook #'sidebuf-refresh)
     (add-hook 'post-command-hook #'sidebuf--maybe-refresh-modified)
@@ -558,6 +625,8 @@ If the buffer is already visible, switch to its window."
   (interactive)
   (remove-hook 'window-selection-change-functions #'sidebuf-refresh)
   (remove-hook 'window-selection-change-functions #'sidebuf--show-fringe)
+  (remove-hook 'window-selection-change-functions
+               #'sidebuf--apply-hl-line-face)
   (remove-hook 'buffer-list-update-hook #'sidebuf-refresh)
   (remove-hook 'after-save-hook #'sidebuf-refresh)
   (remove-hook 'post-command-hook #'sidebuf--maybe-refresh-modified)

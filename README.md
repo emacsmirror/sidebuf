@@ -90,14 +90,15 @@ All options are in the `sidebuf` customization group (`M-x customize-group sideb
 
 ## Faces
 
-| Face                        | Purpose                              |
-|-----------------------------|--------------------------------------|
-| `sidebuf-hl-line`           | Highlight for the current line       |
-| `sidebuf-fringe-indicator`  | Fringe indicator color               |
-| `sidebuf-pinned`            | Pinned buffer names                  |
-| `sidebuf-special`           | `*Special*` buffer names             |
-| `sidebuf-hidden`            | Hidden (space-prefixed) buffer names |
-| `sidebuf-modified`          | Modified indicator                   |
+| Face                         | Purpose                              |
+|------------------------------|--------------------------------------|
+| `sidebuf-hl-line`            | Current line when panel is focused   |
+| `sidebuf-hl-line-inactive`   | Current line when panel is unfocused |
+| `sidebuf-fringe-indicator`   | Fringe indicator color               |
+| `sidebuf-pinned`             | Pinned buffer names                  |
+| `sidebuf-special`            | `*Special*` buffer names             |
+| `sidebuf-hidden`             | Hidden (space-prefixed) buffer names |
+| `sidebuf-modified`           | Modified indicator                   |
 
 ## Requirements
 
