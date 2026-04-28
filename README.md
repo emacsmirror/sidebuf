@@ -1,5 +1,7 @@
 # Sidebuf
 
+[![MELPA](https://melpa.org/packages/sidebuf-badge.svg)](https://melpa.org/#/sidebuf)
+
 A simple, zero-dependency buffer list sidebar for Emacs.
 
 Sidebuf displays a persistent, sorted list of your open buffers in a
@@ -8,6 +10,7 @@ the top, and provides quick toggles for filtering and sorting -- all
 in about 400 lines of Elisp with no external dependencies.
 
 ![sidebuf screenshot](screenshots/sidebuf.png)
+_(sidebuf panel on the left window)_
 
 ## Features
 
@@ -34,7 +37,9 @@ Clone the repo and point `use-package` at it:
   :commands (sidebuf-open sidebuf-close sidebuf-toggle))
 ```
 
-### MELPA (coming soon)
+### MELPA
+
+Sidebuf is available on [MELPA](https://melpa.org/#/sidebuf):
 
 ```elisp
 (use-package sidebuf
