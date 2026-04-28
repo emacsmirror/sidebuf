@@ -1,6 +1,7 @@
 # Sidebuf
 
 [![MELPA](https://melpa.org/packages/sidebuf-badge.svg)](https://melpa.org/#/sidebuf)
+[![License: GPL v3+](https://img.shields.io/badge/License-GPL_v3+-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 A simple, zero-dependency buffer list sidebar for Emacs.
 
