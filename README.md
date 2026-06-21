@@ -5,7 +5,7 @@
 
 A simple, zero-dependency buffer list sidebar for Emacs.
 
-Sidebuf displays a persistent, sorted list of your open buffers in a side window. It tracks the active buffer, lets you pin favorites to the top, and provides quick toggles for filtering and sorting, all in about 400 lines of Elisp with no external dependencies.
+Sidebuf displays a persistent, sorted list of your open buffers in a side window. It tracks the active buffer, lets you pin favorites to the top, and provides quick toggles for filtering and sorting, all in about 600 lines of Elisp with no external dependencies.
 
 ![sidebuf screenshot](screenshots/sidebuf.png)
 _(sidebuf panel on the left window)_
