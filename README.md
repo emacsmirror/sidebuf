@@ -12,16 +12,17 @@ _(sidebuf panel on the left window)_
 
 ## Features
 
-- **Pinned sidebar** -- always-visible buffer list on the left or right
+- **Pinned sidebar**, always-visible buffer list on the left or right
 - **Alphabetical or recent** sort order, toggled with `s`
 - **Pin buffers** to the top of the list with `i`
 - **Filter** `*special*` and hidden buffers on the fly
-- **Smart selection** -- reuses an existing window if the buffer is already displayed
-- **Display without switching** -- preview a buffer with `o`
+- **Smart selection**, reuses an existing window if the buffer is already displayed
+- **Display without switching**, preview a buffer with `o`
 - **Modified/read-only indicators** next to buffer names
 - **Active-buffer tracking** with fringe indicator
 - **Kill buffers** from the sidebar with `k`
 - **Jump in and out** of the panel with a single keychord (`sidebuf-select-window`)
+- **Built-in help**, press `?` for a dismissible keybinding cheat-sheet
 
 ## Installation
 
@@ -54,7 +55,7 @@ Sidebuf is available on [MELPA](https://melpa.org/#/sidebuf):
 | `sidebuf-close`         | Close the panel                   |
 | `sidebuf-select-window` | Jump to the panel, or back out    |
 
-Press `?` inside the panel to see all keybindings:
+Press `?` inside the panel to toggle a help window listing all keybindings (press `?` again or `ESC` to dismiss it):
 
 ```
 Navigation:
@@ -74,7 +75,8 @@ Toggles:
   .                    Toggle hidden buffer visibility
 
 Other:
-  ?                    Show this help
+  ?                    Toggle this help
+  ESC                  Close this help
   q                    Close sidebuf panel
 ```
 

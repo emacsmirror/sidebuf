@@ -50,7 +50,8 @@
 ;; `sidebuf-select-window' is not bound to any key by default; see
 ;; the README for how to bind it.
 ;;
-;; Press ? inside the panel to see all keybindings.
+;; Press ? inside the panel to toggle a help window listing all
+;; keybindings; press ? again or ESC to dismiss it.
 
 ;;; Code:
 
@@ -163,6 +164,9 @@ the box across the virtual end-of-line extension."
 
 (defconst sidebuf--buffer-name "*Sidebuf*"
   "Name of the Sidebuf panel buffer.")
+
+(defconst sidebuf--help-buffer-name "*Sidebuf Help*"
+  "Name of the Sidebuf help buffer.")
 
 (defvar sidebuf--refreshing nil
   "Guard against recursive buffer list refreshes.")
@@ -517,37 +521,57 @@ If the buffer is already visible, switch to its window."
         (message "Pinned: %s" name))
       (sidebuf-refresh))))
 
-(defun sidebuf-help ()
-  "Show a help window with all Sidebuf keybindings."
+(defun sidebuf--help-window ()
+  "Return the window showing the Sidebuf help buffer, or nil."
+  (let ((buf (get-buffer sidebuf--help-buffer-name)))
+    (and buf (get-buffer-window buf))))
+
+(defun sidebuf-help-quit ()
+  "Close the Sidebuf help window if it is open.
+Bound to ESC in the panel so the help can be dismissed as easily
+as it is summoned.  Restores the previous window layout via
+`quit-restore-window' and does nothing when no help is showing."
   (interactive)
-  (let ((help-buf (get-buffer-create "*Sidebuf Help*")))
-    (with-current-buffer help-buf
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (insert
-         "Sidebuf -- Keybindings\n"
-         (make-string 30 ?=) "\n\n"
-         "Navigation:\n"
-         "  p, C-p, up, left     Previous buffer\n"
-         "  n, C-n, down, right  Next buffer\n\n"
-         "Actions:\n"
-         "  RET                  Select buffer (smart window reuse)\n"
-         "  o                    Display buffer (keep focus here)\n"
-         "  k                    Kill buffer at point\n"
-         "  i                    Pin/unpin buffer at point\n"
-         "  g                    Refresh buffer list\n\n"
-         "Toggles:\n"
-         "  s                    Toggle sort (alphabetical / recent)\n"
-         "  *                    Toggle *special* buffer visibility\n"
-         "  .                    Toggle hidden buffer visibility\n\n"
-         "Other:\n"
-         "  ?                    Show this help\n"
-         "  q                    Close sidebuf panel\n")
-        (goto-char (point-min))
-        (special-mode)))
-    (display-buffer help-buf
-                    '((display-buffer-below-selected)
-                      (window-height . fit-window-to-buffer)))))
+  (let ((win (sidebuf--help-window)))
+    (when win
+      (quit-restore-window win 'kill))))
+
+(defun sidebuf-help ()
+  "Toggle a help window listing all Sidebuf keybindings.
+Press once to show the help, again to dismiss it.  ESC also
+dismisses it (see `sidebuf-help-quit')."
+  (interactive)
+  (if (sidebuf--help-window)
+      (sidebuf-help-quit)
+    (let ((help-buf (get-buffer-create sidebuf--help-buffer-name)))
+      (with-current-buffer help-buf
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert
+           "Sidebuf -- Keybindings\n"
+           (make-string 30 ?=) "\n\n"
+           "Navigation:\n"
+           "  p, C-p, up, left     Previous buffer\n"
+           "  n, C-n, down, right  Next buffer\n\n"
+           "Actions:\n"
+           "  RET                  Select buffer (smart window reuse)\n"
+           "  o                    Display buffer (keep focus here)\n"
+           "  k                    Kill buffer at point\n"
+           "  i                    Pin/unpin buffer at point\n"
+           "  g                    Refresh buffer list\n\n"
+           "Toggles:\n"
+           "  s                    Toggle sort (alphabetical / recent)\n"
+           "  *                    Toggle *special* buffer visibility\n"
+           "  .                    Toggle hidden buffer visibility\n\n"
+           "Other:\n"
+           "  ?                    Toggle this help\n"
+           "  ESC                  Close this help\n"
+           "  q                    Close sidebuf panel\n")
+          (goto-char (point-min))
+          (special-mode)))
+      (display-buffer help-buf
+                      '((display-buffer-below-selected)
+                        (window-height . fit-window-to-buffer))))))
 
 ;;;; Keymap
 
@@ -573,8 +597,9 @@ If the buffer is already visible, switch to its window."
     (define-key map (kbd "*")     #'sidebuf-toggle-special)
     (define-key map (kbd ".")     #'sidebuf-toggle-hidden)
     ;; Help / quit
-    (define-key map (kbd "?")     #'sidebuf-help)
-    (define-key map (kbd "q")     #'sidebuf-close)
+    (define-key map (kbd "?")        #'sidebuf-help)
+    (define-key map (kbd "<escape>") #'sidebuf-help-quit)
+    (define-key map (kbd "q")        #'sidebuf-close)
     map)
   "Keymap for `sidebuf-mode'.")
 
@@ -636,6 +661,7 @@ If the buffer is already visible, switch to its window."
   (remove-hook 'after-save-hook #'sidebuf-refresh)
   (remove-hook 'post-command-hook #'sidebuf--maybe-refresh-modified)
   (remove-hook 'enable-theme-functions #'sidebuf--update-fringe-color)
+  (sidebuf-help-quit)
   (let ((buf (get-buffer sidebuf--buffer-name)))
     (when buf
       (let ((win (get-buffer-window buf)))
