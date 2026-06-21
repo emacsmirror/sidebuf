@@ -39,11 +39,16 @@
 ;;  - Smart window reuse when selecting buffers
 ;;  - Modified-buffer indicators
 ;;  - Kill buffers without leaving the sidebar
+;;  - Jump into and back out of the panel with a single key
 ;;
 ;; Usage:
-;;   M-x sidebuf-toggle    Open or close the panel
-;;   M-x sidebuf-open      Open the panel
-;;   M-x sidebuf-close     Close the panel
+;;   M-x sidebuf-toggle         Open or close the panel
+;;   M-x sidebuf-open           Open the panel
+;;   M-x sidebuf-close          Close the panel
+;;   M-x sidebuf-select-window  Jump to the panel, or back out of it
+;;
+;; `sidebuf-select-window' is not bound to any key by default; see
+;; the README for how to bind it.
 ;;
 ;; Press ? inside the panel to see all keybindings.
 
@@ -644,6 +649,39 @@ If the buffer is already visible, switch to its window."
   (if (get-buffer-window sidebuf--buffer-name)
       (sidebuf-close)
     (sidebuf-open)))
+
+;;;; Jump to / from the panel
+
+;;;###autoload
+(defun sidebuf-select-window ()
+  "Select the Sidebuf panel window, or jump back out of it.
+
+When called from another window, select the panel, opening it
+first if it is not already visible.  When called while the panel
+is already selected, jump back to the most recently used window
+-- the one you came from.  This makes the command a toggle: press
+it once to dive into the buffer list, press it again to return to
+your work.
+
+The command is deliberately not bound to any key by default, so
+it never clobbers an existing binding.  Bind it to a global key
+of your choosing, for example:
+
+  (global-set-key (kbd \"M-0\") #\\='sidebuf-select-window)"
+  (interactive)
+  (let* ((panel (get-buffer sidebuf--buffer-name))
+         (win (and panel (get-buffer-window panel))))
+    (if (and win (eq win (selected-window)))
+        ;; Already in the panel: jump back to where we came from.
+        (let ((mru (get-mru-window nil nil 'not-selected)))
+          (when (window-live-p mru)
+            (select-window mru)))
+      ;; Elsewhere: open the panel if needed, then select it.
+      (unless win
+        (sidebuf-open)
+        (setq win (get-buffer-window sidebuf--buffer-name)))
+      (when (window-live-p win)
+        (select-window win)))))
 
 (provide 'sidebuf)
 ;;; sidebuf.el ends here
