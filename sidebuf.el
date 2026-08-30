@@ -36,6 +36,7 @@
 ;;  - Pin buffers to the top of the list
 ;;  - Toggle visibility of *special* and hidden buffers
 ;;  - Active-buffer tracking with fringe indicator
+;;  - Current-line highlight centered on the text (Emacs 31+)
 ;;  - Smart window reuse when selecting buffers
 ;;  - Modified-buffer indicators
 ;;  - Kill buffers without leaving the sidebar
@@ -106,6 +107,26 @@ and sorts alphabetically within each group.
 
 (defcustom sidebuf-show-indicators t
   "Whether to show modified/read-only indicators next to names."
+  :type 'boolean
+  :group 'sidebuf)
+
+(defcustom sidebuf-center-line-spacing t
+  "Whether to split the panel's extra line spacing above and below.
+
+When the panel inherits a non-nil `line-spacing' -- from the frame,
+the global default, or a buffer-local setting -- Emacs puts all of
+that space below each line.  The current-line highlight then hangs
+low around the buffer name rather than sitting centered on it.
+
+With this option enabled, Sidebuf splits the inherited spacing
+evenly above and below each line, so the highlight is centered on
+the text.  Total line height is unchanged; only the position of the
+text within the line moves.
+
+This uses the cons form of `line-spacing', added in Emacs 31.  On
+earlier versions the option does nothing and the panel keeps the
+ambient spacing untouched.  It also does nothing on text terminals,
+where Emacs ignores `line-spacing' entirely."
   :type 'boolean
   :group 'sidebuf)
 
@@ -184,6 +205,21 @@ every command.")
 
 (defvar-local sidebuf--hl-line-cookie nil
   "Face-remap cookie for `hl-line' in the panel.")
+
+(defconst sidebuf--line-spacing-splittable-p
+  (>= emacs-major-version 31)
+  "Non-nil if `line-spacing' accepts a (ABOVE . BELOW) cons.
+Emacs 31 added split line spacing.  Older versions must never be
+given a cons: while the display engine merely ignores one, core
+Lisp such as `default-line-height', `window-default-line-height'
+and `fit-window-to-buffer' adds the value to a number and signals
+`wrong-type-argument'.")
+
+(defvar-local sidebuf--line-spacing nil
+  "The `line-spacing' cons Sidebuf last installed in the panel.
+Lets Sidebuf tell its own value apart from one set elsewhere, so
+spacing changed by the user or by other code is re-centered on the
+next refresh instead of being mistaken for an already-split value.")
 
 (defvar-local sidebuf--match-p nil
   "Non-nil if the last render placed point on a visible line.
@@ -265,6 +301,36 @@ Pinned buffers always come first, in pin order."
        ('alphabetical (sidebuf--sort-alphabetical unpinned))
        ('recent unpinned)))))
 
+;;;; Line spacing
+
+(defun sidebuf--split-line-spacing (spacing)
+  "Return SPACING split into a (ABOVE . BELOW) cons.
+Return nil if SPACING is not a positive number, including when it
+is already a cons -- an explicit split set by the user is left
+alone.  Emacs requires both halves to be integers or both to be
+floats, so the type of SPACING is preserved.  An odd number of
+pixels puts the extra pixel below the text."
+  (cond
+   ((not (numberp spacing)) nil)
+   ((<= spacing 0) nil)
+   ((integerp spacing)
+    (let ((above (/ spacing 2)))
+      (cons above (- spacing above))))
+   (t (cons (/ spacing 2.0) (/ spacing 2.0)))))
+
+(defun sidebuf--apply-line-spacing ()
+  "Center the panel's inherited `line-spacing' around the text.
+Runs from `sidebuf--render' with the panel current, so spacing
+installed after the panel was created -- by a theme, or by a hook
+that walks `buffer-list' -- is picked up on the next refresh."
+  (when (and sidebuf-center-line-spacing
+             sidebuf--line-spacing-splittable-p
+             (not (equal line-spacing sidebuf--line-spacing)))
+    (let ((split (sidebuf--split-line-spacing line-spacing)))
+      (when split
+        (setq-local line-spacing split
+                    sidebuf--line-spacing split)))))
+
 ;;;; Rendering
 
 (defun sidebuf--render ()
@@ -297,6 +363,7 @@ Pinned buffers always come first, in pin order."
                             sidebuf--pinned))
     (when panel
       (with-current-buffer panel
+        (sidebuf--apply-line-spacing)
         (let ((inhibit-read-only t))
           (erase-buffer)
           (dolist (buf bufs)

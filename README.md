@@ -105,15 +105,16 @@ Or with `use-package`:
 
 All options are in the `sidebuf` customization group (`M-x customize-group sidebuf`):
 
-| Variable                    | Default        | Description                                |
-|-----------------------------|----------------|--------------------------------------------|
-| `sidebuf-side`              | `left`         | Panel placement (`left` or `right`)        |
-| `sidebuf-width`             | `24`           | Panel width in characters                  |
-| `sidebuf-show-special`      | `t`            | Show `*special*` buffers                   |
-| `sidebuf-show-hidden`       | `nil`          | Show hidden (space-prefixed) buffers       |
-| `sidebuf-sort-order`        | `alphabetical` | `alphabetical` or `recent`                 |
-| `sidebuf-pin-new-position`  | `bottom`       | Where new pins go (`top` or `bottom`)      |
-| `sidebuf-show-indicators`   | `t`            | Show modified/read-only markers            |
+| Variable                      | Default        | Description                                       |
+|-------------------------------|----------------|---------------------------------------------------|
+| `sidebuf-side`                | `left`         | Panel placement (`left` or `right`)               |
+| `sidebuf-width`               | `24`           | Panel width in characters                         |
+| `sidebuf-show-special`        | `t`            | Show `*special*` buffers                          |
+| `sidebuf-show-hidden`         | `nil`          | Show hidden (space-prefixed) buffers              |
+| `sidebuf-sort-order`          | `alphabetical` | `alphabetical` or `recent`                        |
+| `sidebuf-pin-new-position`    | `bottom`       | Where new pins go (`top` or `bottom`)             |
+| `sidebuf-show-indicators`     | `t`            | Show modified/read-only markers                   |
+| `sidebuf-center-line-spacing` | `t`            | Center the line highlight on the text (Emacs 31+) |
 
 ## Faces
 
@@ -130,6 +131,8 @@ All options are in the `sidebuf` customization group (`M-x customize-group sideb
 ## Requirements
 
 Emacs 27.1 or later. No external dependencies.
+
+On Emacs 31 or later, if a `line-spacing` is in effect the panel splits it evenly above and below each line, so the current-line highlight sits centered on the buffer name instead of hanging below it. The total line height is unchanged. Earlier versions render exactly as before; see `sidebuf-center-line-spacing` to turn this off.
 
 ## License
 
