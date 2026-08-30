@@ -4,7 +4,7 @@
 
 ;; Author: rain-64 <https://github.com/rain-64>
 ;; URL: https://github.com/rain-64/sidebuf
-;; Version: 0.1.0
+;; Version: 0.2.0
 ;; Package-Requires: ((emacs "27.1"))
 ;; Keywords: convenience buffers
 
